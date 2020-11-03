@@ -1,0 +1,58 @@
+.container {
+  display: flex;
+  flex-direction: row;
+  padding-left: 4pt;
+  align-items: center;
+  width: 100%;
+}
+
+#slice-selector {
+  width: 95%;
+  border-style: solid;
+  border-width: thin;
+  height: 200px;
+}
+
+#selector-container {
+  padding-right: 4pt;
+  align-items: center;
+}
+
+.selector-item {
+  padding: 4px 6px;
+}
+
+.selected {
+  background: rgb(197, 228, 232);
+}
+
+.toolbar > * {
+  margin: 4pt;
+}
+
+.checkbox-holder{
+  display: flex;
+  justify-content: space-between;
+}
+
+.checkbox-title{
+  font-size: 12px;
+}
+
+#input-box {
+  width: 55%;
+}
+
+#create-container {
+  margin-top: 8px;
+}
+
+#select-container {
+  margin-top: 10px;
+  width: 100%;
+}
+
+#delete {
+  margin-top: 8px;
+  margin-left: 0px;
+}

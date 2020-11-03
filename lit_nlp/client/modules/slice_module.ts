@@ -16,32 +16,42 @@
  */
 
 // tslint:disable:no-new-decorators
-import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
+import {LitModule} from '../core/lit_module';
+import {ModelsMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
 import {GroupService} from '../services/group_service';
-import {AppState, SelectionService, SliceService} from '../services/services';
+import {SliceService} from '../services/services';
+import {FAVORITES_SLICE_NAME} from '../services/slice_service';
+
 
 import {styles as sharedStyles} from './shared_styles.css';
-import {styles} from './slice_toolbar.css';
+import {styles} from './slice_module.css';
 
 /**
- * The slice controls toolbar
+ * The slice controls module
  */
-@customElement('lit-slice-toolbar')
-export class SliceToolbar extends MobxLitElement {
+@customElement('lit-slice-module')
+export class SliceModule extends LitModule {
   static get styles() {
     return [sharedStyles, styles];
   }
 
-  private readonly selectionService = app.getService(SelectionService);
+  static title = 'Slice Editor';
+  static numCols = 2;
+  static collapseByDefault = true;
+  static duplicateForModelComparison = false;
+
+  static template = () => {
+    return html`<lit-slice-module></lit-slice-module>`;
+  };
+
   private readonly sliceService = app.getService(SliceService);
   private readonly groupService = app.getService(GroupService);
-
-  private readonly appState = app.getService(AppState);
 
   @observable private sliceByFeatures: string[] = [];
 
@@ -62,7 +72,8 @@ export class SliceToolbar extends MobxLitElement {
 
   @computed
   private get deleteButtonEnabled() {
-    return this.sliceService.selectedSliceName !== '';
+    return this.sliceService.selectedSliceName !== '' &&
+        this.sliceService.selectedSliceName !== FAVORITES_SLICE_NAME;
   }
 
   @computed
@@ -122,12 +133,9 @@ export class SliceToolbar extends MobxLitElement {
     this.selectSlice('');
   }
 
-  renderButtons() {
+  renderCreate() {
     const onClickCreate = () => {
       this.handleClickCreate();
-    };
-    const onClickDelete = () => {
-      this.deleteSlice();
     };
     const onInputChange = (e: Event) => {
       // tslint:disable-next-line:no-any
@@ -139,43 +147,41 @@ export class SliceToolbar extends MobxLitElement {
     };
     // clang-format off
     return html`
-      <input type="text" id="input-box" .value=${this.sliceName}
-        placeholder="Enter name" @input=${onInputChange}
-        ?readonly="${!this.sliceNameInputEditable}"
-        @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}/>
-      <button ?disabled="${!this.createButtonEnabled}" id="create"
-        @click=${onClickCreate}>Create slice
-      </button>
-      <button ?disabled="${!this.deleteButtonEnabled}"  id="delete"
-        @click=${onClickDelete}>Delete slice
-      </button>
+      <div class="container" id="create-container">
+        <input type="text" id="input-box" .value=${this.sliceName}
+          placeholder="Enter name" @input=${onInputChange}
+          ?readonly="${!this.sliceNameInputEditable}"
+          @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}/>
+        <button ?disabled="${!this.createButtonEnabled}" id="create"
+          @click=${onClickCreate}>Create slice
+        </button>
+      </div>
     `;
     // clang-format on
   }
 
   renderSliceSelector() {
     const selectedSliceName = this.sliceService.selectedSliceName;
-    const sliceNames = [''].concat(this.sliceService.sliceNames);
-
-    const handleSelectChange = (e: Event) => {
-      const selectedValue = (e.target as HTMLSelectElement).value;
-      this.selectSlice(selectedValue);
-    };
 
     // clang-format off
     return html`
-      <label class="dropdown-label">Selected slice</label>
-      <select class="dropdown" id="slice-selector"
-        .value=${selectedSliceName}
-        @change=${handleSelectChange}>
-        ${sliceNames.map(sliceName => {
-          const isSelected = sliceName === selectedSliceName;
-          return html`
-            <option ?selected="${isSelected}" value=${sliceName}>
-              ${sliceName}
-            </option>`;
-        })}
-      </select>
+      <div id="select-container">
+        <label>Select slice</label>
+        <div id="slice-selector">
+          ${this.sliceService.sliceNames.map(sliceName => {
+            const itemClass =
+                classMap({'selector-item': true,
+                          'selected': sliceName === selectedSliceName});
+            const itemClicked = () => {
+                this.selectSlice(selectedSliceName === sliceName ? '': sliceName);
+            };
+            return html`
+              <div class=${itemClass} @click=${itemClicked}>
+                ${sliceName}
+              </div>`;
+          })}
+        </div>
+      </div>
     `;
     // clang-format on
   }
@@ -227,22 +233,35 @@ export class SliceToolbar extends MobxLitElement {
   }
 
   render() {
+    const onClickDelete = () => {
+      this.deleteSlice();
+    };
+
     return html`
-      <div class="toolbar" id="slice-toolbar">
-        ${this.renderSliceSelector()}
-        ${this.renderButtons()}
-      </div>
-      <div class="toolbar" >
-        <label class="dropdown-label">Slice by feature</label>
+      ${this.renderCreate()}
+      <div class="container" >
+        <label>Slice by feature</label>
         ${this.renderFilters()}
         ${this.renderNumSlices()}
       </div>
+      <div class="container" id="selector-container">
+        ${this.renderSliceSelector()}
+      </div>
+      <div class="container">
+        <button ?disabled=${!this.deleteButtonEnabled} id="delete"
+          @click=${onClickDelete}>Delete slice
+        </button>
+      </div>
     `;
+  }
+
+  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+    return true;
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'lit-slice-toolbar': SliceToolbar;
+    'lit-slice-module': SliceModule;
   }
 }
